@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실수령액 계산기 — 세전 월급, 실제로 얼마 받나요?</title>
+<meta name="description" content="세전 급여를 입력하면 4대보험과 소득세를 자동으로 계산해 실수령액을 알려드려요. 알바생, 직장인, 프리랜서 모두 무료로 바로 사용하세요.">
+<meta name="keywords" content="실수령액 계산기, 세후 월급 계산, 4대보험 계산기, 알바 실수령액, 급여 계산기, 소득세 계산">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="실수령액 계산기 — 세전 월급, 실제로 얼마 받나요?">
+<meta property="og:description" content="세전 급여 입력하면 4대보험·소득세 자동 계산. 무료·회원가입 없음.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+/* ===== 토큰 ===== */
+:root {
+  --green: #00C27C;
+  --green-light: #E6FBF4;
+  --green-dark: #009960;
+  --text: #111827;
+  --sub: #6B7280;
+  --bg: #F8FAFC;
+  --white: #FFFFFF;
+  --border: #E5E7EB;
+  --red: #EF4444;
+  --radius: 14px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== 헤더 ===== */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.header-inner {
+  max-width: 1000px; margin: 0 auto; padding: 0 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 17px; text-decoration: none; color: var(--text);
+}
+.logo-mark {
+  width: 30px; height: 30px; background: var(--green); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.nav a {
+  font-size: 14px; color: var(--sub); text-decoration: none;
+  padding: 6px 12px; border-radius: 8px;
+}
+.nav a:hover { color: var(--text); background: var(--bg); }
+
+/* ===== 히어로 ===== */
+.hero {
+  background: var(--white);
+  padding: 56px 20px 48px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--green-light); color: var(--green-dark);
+  font-size: 13px; font-weight: 700; padding: 5px 12px;
+  border-radius: 999px; margin-bottom: 18px;
+}
+.hero h1 {
+  font-size: 36px; font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.25; margin-bottom: 14px;
+}
+.hero h1 em { color: var(--green); font-style: normal; }
+.hero p {
+  font-size: 16px; color: var(--sub); max-width: 440px; margin: 0 auto;
+}
+
+/* ===== 메인 레이아웃 ===== */
+.main {
+  max-width: 1000px; margin: 0 auto;
+  padding: 40px 20px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ===== 카드 ===== */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  padding: 20px 24px 0;
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-head .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+}
+.card-body { padding: 20px 24px 24px; }
+
+/* ===== 폼 ===== */
+.field { margin-bottom: 18px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 13px; font-weight: 600;
+  color: var(--sub); margin-bottom: 6px;
+}
+.field input, .field select {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-family: inherit; font-size: 15px; color: var(--text);
+  background: var(--white); outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus { border-color: var(--green); }
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.hint { font-size: 12px; color: var(--sub); margin-top: 5px; }
+
+.calc-btn {
+  width: 100%; padding: 14px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: 10px;
+  font-family: inherit; font-size: 16px; font-weight: 700;
+  cursor: pointer; margin-top: 20px;
+  transition: background 0.15s, transform 0.1s;
+}
+.calc-btn:hover { background: var(--green-dark); }
+.calc-btn:active { transform: translateY(1px); }
+
+/* ===== 결과 ===== */
+.result-empty {
+  padding: 48px 24px; text-align: center; color: var(--sub);
+  font-size: 14px;
+}
+.result-empty .emoji { font-size: 36px; display: block; margin-bottom: 12px; }
+
+.result-main {
+  padding: 24px;
+  background: var(--green-light);
+  text-align: center;
+  border-bottom: 1px solid rgba(0,194,124,0.15);
+}
+.result-main .label { font-size: 13px; color: var(--green-dark); font-weight: 600; }
+.result-main .amount {
+  font-size: 40px; font-weight: 800; color: var(--green);
+  letter-spacing: -0.02em; margin: 6px 0 2px;
+}
+.result-main .sub-label { font-size: 12px; color: var(--green-dark); opacity: 0.8; }
+
+.deduction-list { padding: 20px 24px; }
+.deduction-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.deduction-item:last-child { border-bottom: none; }
+.deduction-item .name { color: var(--sub); }
+.deduction-item .value { font-weight: 600; font-family: 'Pretendard', monospace; }
+.deduction-item .value.minus { color: var(--red); }
+.deduction-item.total-row .name { font-weight: 700; color: var(--text); }
+.deduction-item.total-row .value { color: var(--red); font-weight: 700; }
+.deduction-item.net-row { background: var(--bg); margin: 0 -24px; padding: 12px 24px; }
+.deduction-item.net-row .name { font-weight: 700; color: var(--text); font-size: 15px; }
+.deduction-item.net-row .value { color: var(--green); font-weight: 800; font-size: 15px; }
+
+.result-actions {
+  padding: 16px 24px 20px;
+  display: flex; gap: 10px;
+  border-top: 1px solid var(--border);
+}
+.btn-outline {
+  flex: 1; padding: 10px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--white); font-family: inherit; font-size: 14px;
+  font-weight: 600; color: var(--text); cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn-outline:hover { border-color: var(--green); color: var(--green); }
+.btn-primary-sm {
+  flex: 1; padding: 10px;
+  background: var(--green); border: none; border-radius: 10px;
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  color: #fff; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary-sm:hover { background: var(--green-dark); }
+
+/* ===== 요율 안내 ===== */
+.rate-card { margin-top: 0; }
+.rate-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rate-table th {
+  text-align: left; padding: 8px 12px;
+  background: var(--bg); color: var(--sub);
+  font-weight: 600; font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.rate-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.rate-table tr:last-child td { border-bottom: none; }
+.rate-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+}
+.rate-badge.green { background: var(--green-light); color: var(--green-dark); }
+.rate-badge.gray { background: var(--bg); color: var(--sub); }
+
+/* ===== FAQ ===== */
+.faq-section { max-width: 1000px; margin: 0 auto; padding: 0 20px 80px; }
+.faq-section h2 { font-size: 22px; font-weight: 800; margin-bottom: 20px; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-q {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 18px 4px; font-family: inherit; font-size: 15px;
+  font-weight: 600; color: var(--text); cursor: pointer;
+}
+.faq-q .icon { color: var(--sub); transition: transform 0.2s; font-size: 20px; }
+.faq-item.open .faq-q .icon { transform: rotate(45deg); color: var(--green); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+.faq-item.open .faq-a { max-height: 200px; }
+.faq-a p { padding: 0 4px 18px; font-size: 14px; color: var(--sub); line-height: 1.7; }
+
+/* ===== 푸터 ===== */
+.footer {
+  border-top: 1px solid var(--border); background: var(--white);
+  padding: 32px 20px; text-align: center;
+  font-size: 13px; color: var(--sub);
+}
+.footer a { color: var(--sub); text-decoration: none; margin: 0 12px; }
+.footer a:hover { color: var(--text); }
+.footer-links { margin-bottom: 10px; }
+
+/* ===== 광고 슬롯 ===== */
+.ad-slot { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+/* ===== 반응형 ===== */
+@media (max-width: 720px) {
+  .main { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 26px; }
+  .result-main .amount { font-size: 32px; }
+  .nav { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-mark">💰</span>
+      실수령액 계산기
+    </a>
+    <nav class="nav">
+      <a href="#calc">계산하기</a>
+      <a href="#rates">공제 요율</a>
+      <a href="#faq">자주 묻는 질문</a>
+      <a href="privacy.html">개인정보처리방침</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-badge">✓ 회원가입 없이 바로 사용</div>
+  <h1>세전 월급,<br><em>실제로 얼마 받나요?</em></h1>
+  <p>4대보험과 소득세를 자동으로 계산해서 실수령액을 바로 알려드려요.</p>
+</section>
+
+<!-- 광고 1 -->
+<div class="ad-slot" style="margin-top:32px;">
+  <!-- 애드센스 승인 후 여기에 광고 코드 삽입 -->
+</div>
+
+<main class="main" id="calc">
+
+  <!-- 입력 카드 -->
+  <div class="card">
+    <div class="card-head"><span class="dot"></span> 급여 정보 입력</div>
+    <div class="card-body">
+
+      <!-- 시급 계산기 -->
+      <div style="background:var(--green-light); border-radius:10px; padding:16px; margin-bottom:20px;">
+        <div style="font-size:13px; font-weight:700; color:var(--green-dark); margin-bottom:12px;">⏱ 시급으로 먼저 계산하기</div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label>시급 (원)</label>
+          <input type="number" id="hourly" placeholder="예: 10030 (2026 최저임금)" min="0" step="10">
+        </div>
+
+        <div id="dayInputs">
+          <label style="font-size:13px; font-weight:600; color:var(--sub); display:block; margin-bottom:8px;">일별 근무시간 입력</label>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px; color:var(--sub);">월</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">화</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">수</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">목</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">금</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">토</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--sub);">일</label>
+              <input type="number" class="day-input" min="0" max="12" step="0.5" placeholder="0" style="width:100%; padding:8px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; text-align:center;">
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+              <label style="font-size:11px; color:var(--sub);">주 총합</label>
+              <div id="weekTotal" style="padding:8px; background:white; border:1.5px solid var(--border); border-radius:8px; font-size:14px; font-weight:700; color:var(--green); text-align:center;">0h</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:13px; font-weight:600; color:var(--sub); display:block; margin-bottom:6px;">이 패턴으로 몇 주 일했나요?</label>
+          <input type="number" id="weeks" placeholder="예: 4" min="1" max="8" step="1" value="4" style="width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px;">
+        </div>
+
+        <button onclick="calcFromHourly()" style="width:100%; padding:11px; background:var(--green-dark); color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;">월 세전급여 자동 계산 →</button>
+
+        <div id="hourlyResult" style="display:none; margin-top:10px; padding:10px 14px; background:#fff; border-radius:8px; font-size:13px; color:var(--text);">
+          주 <span id="hr-week-hours">0</span>시간 × <span id="hr-weeks">4</span>주
+          = 월 <strong id="hr-total-hours">0</strong>시간
+          → 세전 <strong style="color:var(--green);" id="hr-salary">0원</strong>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>세전 월급 (원)</label>
+        <input type="number" id="salary" placeholder="예: 2500000" min="0" step="10000">
+        <p class="hint">위에서 자동 계산하거나 직접 입력하세요</p>
+      </div>
+
+      <div class="field">
+        <label>고용 형태</label>
+        <select id="empType">
+          <option value="full">정규직 / 계약직</option>
+          <option value="part">알바 (시간제 근로자)</option>
+          <option value="freelance">프리랜서 (3.3% 공제)</option>
+        </select>
+      </div>
+
+      <div class="field" id="dependentField">
+        <label>부양가족 수 (본인 포함)</label>
+        <select id="dependents">
+          <option value="1">1명 (본인만)</option>
+          <option value="2">2명</option>
+          <option value="3">3명</option>
+          <option value="4">4명</option>
+          <option value="5">5명 이상</option>
+        </select>
+        <p class="hint">소득세 계산에 반영됩니다</p>
+      </div>
+
+      <div class="field">
+        <label>비과세 수당 (원, 선택)</label>
+        <input type="number" id="nontax" placeholder="예: 200000 (식대)" min="0" step="10000">
+        <p class="hint">식대, 교통비 등 비과세 항목은 제외하고 계산돼요</p>
+      </div>
+
+      <button class="calc-btn" onclick="calculate()">💸 실수령액 계산하기</button>
+    </div>
+  </div>
+
+  <!-- 결과 카드 -->
+  <div class="card" id="resultCard">
+    <div class="card-head"><span class="dot"></span> 계산 결과</div>
+    <div class="result-empty" id="emptyResult">
+      <span class="emoji">🧮</span>
+      왼쪽에 급여 정보를 입력하고<br>계산 버튼을 눌러주세요.
+    </div>
+    <div id="resultContent" style="display:none;">
+      <div class="result-main">
+        <div class="label">예상 실수령액</div>
+        <div class="amount" id="netAmount">0원</div>
+        <div class="sub-label" id="netSubLabel">월 기준</div>
+      </div>
+      <div class="deduction-list">
+        <div class="deduction-item">
+          <span class="name">세전 급여</span>
+          <span class="value" id="r-gross">-</span>
+        </div>
+        <div class="deduction-item" id="r-pension-row">
+          <span class="name">국민연금 (4.5%)</span>
+          <span class="value minus" id="r-pension">-</span>
+        </div>
+        <div class="deduction-item" id="r-health-row">
+          <span class="name">건강보험 (3.545%)</span>
+          <span class="value minus" id="r-health">-</span>
+        </div>
+        <div class="deduction-item" id="r-longterm-row">
+          <span class="name">장기요양보험 (0.4591%)</span>
+          <span class="value minus" id="r-longterm">-</span>
+        </div>
+        <div class="deduction-item" id="r-employ-row">
+          <span class="name">고용보험 (0.9%)</span>
+          <span class="value minus" id="r-employ">-</span>
+        </div>
+        <div class="deduction-item" id="r-income-row">
+          <span class="name">소득세</span>
+          <span class="value minus" id="r-income">-</span>
+        </div>
+        <div class="deduction-item" id="r-local-row">
+          <span class="name">지방소득세 (소득세의 10%)</span>
+          <span class="value minus" id="r-local">-</span>
+        </div>
+        <div class="deduction-item" id="r-freelance-row" style="display:none;">
+          <span class="name">프리랜서 세금 (3.3%)</span>
+          <span class="value minus" id="r-freelance">-</span>
+        </div>
+        <div class="deduction-item total-row">
+          <span class="name">총 공제액</span>
+          <span class="value minus" id="r-total-deduct">-</span>
+        </div>
+        <div class="deduction-item net-row">
+          <span class="name">실수령액</span>
+          <span class="value" id="r-net">-</span>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="btn-outline" onclick="resetCalc()">초기화</button>
+        <button class="btn-primary-sm" onclick="exportPdf()">PDF 저장</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 광고 2 -->
+<div class="ad-slot">
+  <!-- 애드센스 승인 후 여기에 광고 코드 삽입 -->
+</div>
+
+<!-- 공제 요율 안내 -->
+<section class="faq-section" id="rates" style="margin-top:40px;">
+  <h2>2026년 공제 요율 안내</h2>
+  <div class="card rate-card">
+    <div class="card-body" style="padding:0;">
+      <table class="rate-table">
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>근로자 부담률</th>
+            <th>적용 대상</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>국민연금</td>
+            <td><strong>4.5%</strong></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>건강보험</td>
+            <td><strong>3.545%</strong></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>장기요양보험</td>
+            <td><strong>0.4591%</strong> <span style="font-size:11px;color:#9CA3AF">(건강보험료의 12.95%)</span></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>고용보험</td>
+            <td><strong>0.9%</strong></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>소득세</td>
+            <td><strong>간이세액표 기준</strong></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>지방소득세</td>
+            <td><strong>소득세의 10%</strong></td>
+            <td><span class="rate-badge green">정규직</span> <span class="rate-badge green">알바</span></td>
+          </tr>
+          <tr>
+            <td>프리랜서 세금</td>
+            <td><strong>3.3%</strong> <span style="font-size:11px;color:#9CA3AF">(소득세 3% + 지방세 0.3%)</span></td>
+            <td><span class="rate-badge gray">프리랜서</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" id="faq">
+  <h2>자주 묻는 질문</h2>
+  <div class="card">
+    <div class="card-body" style="padding: 0 24px;">
+
+      <div class="faq-item">
+        <button class="faq-q">알바도 4대보험을 내야 하나요? <span class="icon">+</span></button>
+        <div class="faq-a"><p>주 15시간 이상 근무하면 고용보험, 월 60시간 이상이면 국민연금과 건강보험도 적용돼요. 단기 알바라도 조건에 해당하면 공제될 수 있으니 고용주에게 확인해보세요.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q">프리랜서 3.3%는 어떻게 계산되나요? <span class="icon">+</span></button>
+        <div class="faq-a"><p>프리랜서는 4대보험 대신 소득세 3%와 지방소득세 0.3%를 합친 3.3%를 원천징수해요. 고용주(의뢰인)가 세금을 떼고 지급하며, 다음 해 5월 종합소득세 신고로 정산하면 환급을 받을 수도 있어요.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q">비과세 수당이 뭔가요? <span class="icon">+</span></button>
+        <div class="faq-a"><p>식대(월 20만원 이하), 교통비, 자가운전보조금 등 세금이 붙지 않는 수당이에요. 이 금액은 4대보험과 소득세 계산에서 제외되므로, 해당하는 수당이 있으면 입력해두면 더 정확하게 계산돼요.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q">이 계산기 결과는 얼마나 정확한가요? <span class="icon">+</span></button>
+        <div class="faq-a"><p>2026년 기준 4대보험 요율과 간이세액표를 적용한 근사치예요. 실제 급여는 회사 규모, 추가 수당, 연말정산 등에 따라 달라질 수 있어요. 정확한 계산은 회사 급여 담당자나 세무사에게 확인하세요.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q">최저임금 기준 실수령액이 궁금해요 <span class="icon">+</span></button>
+        <div class="faq-a"><p>2026년 최저임금은 시간당 10,030원이에요. 주 40시간 기준 월 환산액은 약 2,096,270원이에요. 위 계산기에 이 금액을 입력하면 실수령액을 바로 확인할 수 있어요.</p></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="#calc">계산하기</a>
+    <a href="#faq">자주 묻는 질문</a>
+    <a href="privacy.html">개인정보처리방침</a>
+  </div>
+  <p>© 2026 실수령액 계산기 · 본 계산기는 참고용이며 실제 급여와 차이가 있을 수 있어요.</p>
+</footer>
+
+<script>
+// ===== 시급 계산기 =====
+function updateWeekTotal() {
+  const inputs = document.querySelectorAll('.day-input');
+  let total = 0;
+  inputs.forEach(i => { total += Number(i.value) || 0; });
+  document.getElementById('weekTotal').textContent = total + 'h';
+}
+
+document.querySelectorAll('.day-input').forEach(input => {
+  input.addEventListener('input', updateWeekTotal);
+});
+
+function calcFromHourly() {
+  const hourly = Number(document.getElementById('hourly').value) || 0;
+  const weeks = Number(document.getElementById('weeks').value) || 4;
+  if (hourly <= 0) { alert('시급을 입력해주세요.'); return; }
+
+  const inputs = document.querySelectorAll('.day-input');
+  let weekHours = 0;
+  inputs.forEach(i => { weekHours += Number(i.value) || 0; });
+  if (weekHours <= 0) { alert('근무시간을 입력해주세요.'); return; }
+
+  const totalHours = weekHours * weeks;
+  const monthlySalary = Math.round(hourly * totalHours);
+
+  document.getElementById('hr-week-hours').textContent = weekHours;
+  document.getElementById('hr-weeks').textContent = weeks;
+  document.getElementById('hr-total-hours').textContent = totalHours;
+  document.getElementById('hr-salary').textContent = monthlySalary.toLocaleString('ko-KR') + '원';
+  document.getElementById('hourlyResult').style.display = 'block';
+
+  // 세전 월급 칸에 자동 입력
+  document.getElementById('salary').value = monthlySalary;
+}
+
+// ===== 2026년 간이세액표 근사치 (부양가족 1명 기준) =====
+// 출처: 국세청 근로소득 간이세액표
+function getIncomeTax(taxableMonthly, dependents) {
+  // 과세표준별 세율 (월 기준 근사치)
+  const brackets = [
+    { limit: 1060000,  rate: 0,      base: 0 },
+    { limit: 1500000,  rate: 0.06,   base: 0 },
+    { limit: 3000000,  rate: 0.15,   base: 54000 },
+    { limit: 4500000,  rate: 0.24,   base: 279000 },
+    { limit: 8000000,  rate: 0.35,   base: 639000 },
+    { limit: 15000000, rate: 0.38,   base: 1884000 },
+    { limit: Infinity, rate: 0.40,   base: 4546000 },
+  ];
+
+  // 부양가족 공제 (1인당 월 15만원 근사치)
+  const dependentDeduction = (dependents - 1) * 150000;
+  const taxable = Math.max(0, taxableMonthly - dependentDeduction);
+
+  let tax = 0;
+  let prev = 0;
+  for (const b of brackets) {
+    if (taxable <= b.limit) {
+      tax = b.base + (taxable - prev) * b.rate;
+      break;
+    }
+    prev = b.limit;
+  }
+  return Math.max(0, Math.round(tax / 10) * 10);
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('ko-KR') + '원';
+}
+
+function calculate() {
+  const salary = Number(document.getElementById('salary').value) || 0;
+  const empType = document.getElementById('empType').value;
+  const dependents = Number(document.getElementById('dependents').value) || 1;
+  const nontax = Number(document.getElementById('nontax').value) || 0;
+
+  if (salary <= 0) {
+    alert('세전 급여를 입력해주세요.');
+    return;
+  }
+
+  const taxable = Math.max(0, salary - nontax);
+  let pension = 0, health = 0, longterm = 0, employ = 0, income = 0, local = 0, freelance = 0;
+
+  if (empType === 'freelance') {
+    freelance = Math.round(salary * 0.033);
+  } else {
+    pension  = Math.round(taxable * 0.045);
+    health   = Math.round(taxable * 0.03545);
+    longterm = Math.round(health * 0.1295);
+    employ   = Math.round(taxable * 0.009);
+    income   = getIncomeTax(taxable, dependents);
+    local    = Math.round(income * 0.1);
+  }
+
+  const totalDeduct = pension + health + longterm + employ + income + local + freelance;
+  const net = salary - totalDeduct;
+
+  // 결과 표시
+  document.getElementById('emptyResult').style.display = 'none';
+  document.getElementById('resultContent').style.display = 'block';
+
+  document.getElementById('netAmount').textContent = fmt(net);
+  document.getElementById('netSubLabel').textContent =
+    `세전 ${fmt(salary)} → 공제 ${fmt(totalDeduct)}`;
+
+  document.getElementById('r-gross').textContent = fmt(salary);
+  document.getElementById('r-net').textContent = fmt(net);
+  document.getElementById('r-total-deduct').textContent = '−' + fmt(totalDeduct);
+
+  const isFreelance = empType === 'freelance';
+  const rows = ['pension','health','longterm','employ','income','local'];
+  rows.forEach(k => {
+    document.getElementById(`r-${k}-row`).style.display = isFreelance ? 'none' : 'flex';
+  });
+  document.getElementById('r-freelance-row').style.display = isFreelance ? 'flex' : 'none';
+
+  if (!isFreelance) {
+    document.getElementById('r-pension').textContent  = '−' + fmt(pension);
+    document.getElementById('r-health').textContent   = '−' + fmt(health);
+    document.getElementById('r-longterm').textContent = '−' + fmt(longterm);
+    document.getElementById('r-employ').textContent   = '−' + fmt(employ);
+    document.getElementById('r-income').textContent   = '−' + fmt(income);
+    document.getElementById('r-local').textContent    = '−' + fmt(local);
+  } else {
+    document.getElementById('r-freelance').textContent = '−' + fmt(freelance);
+  }
+}
+
+function resetCalc() {
+  document.getElementById('salary').value = '';
+  document.getElementById('nontax').value = '';
+  document.getElementById('empType').value = 'full';
+  document.getElementById('dependents').value = '1';
+  document.getElementById('emptyResult').style.display = 'block';
+  document.getElementById('resultContent').style.display = 'none';
+}
+
+function exportPdf() {
+  const salary = document.getElementById('netAmount').textContent;
+  if (salary === '0원') return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text('급여 실수령액 계산서', 14, 20);
+  doc.setFontSize(10);
+  doc.text(`작성일: ${new Date().toLocaleDateString('ko-KR')}`, 14, 28);
+
+  const rows = [];
+  ['r-gross','r-pension','r-health','r-longterm','r-employ','r-income','r-local','r-freelance','r-total-deduct','r-net'].forEach(id => {
+    const row = document.getElementById(id + '-row') || document.getElementById(id)?.closest('.deduction-item');
+    if (!row || row.style.display === 'none') return;
+    const name = row.querySelector('.name')?.textContent;
+    const value = document.getElementById(id)?.textContent;
+    if (name && value) rows.push([name, value]);
+  });
+
+  doc.autoTable({
+    startY: 35,
+    head: [['항목', '금액']],
+    body: rows,
+    styles: { font: 'helvetica', fontSize: 10 },
+    headStyles: { fillColor: [0, 194, 124] },
+  });
+
+  doc.save(`실수령액_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// FAQ 아코디언
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+
+// 엔터로 계산
+document.getElementById('salary').addEventListener('keydown', e => {
+  if (e.key === 'Enter') calculate();
+});
+
+// 고용형태 변경시 부양가족 필드 토글
+document.getElementById('empType').addEventListener('change', function() {
+  document.getElementById('dependentField').style.display =
+    this.value === 'freelance' ? 'none' : 'block';
+});
+</script>
+
+</body>
+</html>
